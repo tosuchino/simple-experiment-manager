@@ -1,0 +1,30 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# --- Build & Distribution ---
+dist/
+build/
+*.egg-info/
+
+# --- Environment Variables (Security) ---
+.env
+.envrc
+
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
+
+# --- Editors/IDEs ---
+.vscode/
+.idea/
+*.swp
+
+# --- Experiment Specific ---
+data/
+logs/

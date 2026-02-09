@@ -1,0 +1,98 @@
+from conftest import DummyConfig
+
+from simple_experiment_manager.manager import ExperimentManager
+from simple_experiment_manager.schemas.contexts import ExperimentContext
+
+
+def test_create_experiment_and_io_integrity(
+    manager: ExperimentManager, dummy_ctx: ExperimentContext
+) -> None:
+    """Ensure that creating a experiment creates the directory and updates status."""
+    # Arrange
+    name = "io-test-experiment"
+    config = DummyConfig(user_name="tester")
+
+    # Act
+    res = manager.create_experiment(name, config)
+
+    # Assert
+    assert res.is_success
+    assert manager.active_experiment == name
+    assert dummy_ctx.get_config_file(name).exists()
+    assert dummy_ctx.experiment_index_file.exists()
+
+
+def test_create_experiment_duplicate_fails(manager: ExperimentManager) -> None:
+    """Negative test for creating experiments with duplicate names."""
+    # Arrange
+    name = "duplicate"
+    manager.create_experiment(name, DummyConfig())
+
+    # Act
+    res = manager.create_experiment(name, DummyConfig())
+
+    # Assert
+    assert res.is_success is False
+    assert "already exists" in res.message
+
+
+def test_rename_active_experiment_consistency(manager: ExperimentManager) -> None:
+    """Ensure renaming the active experiment updates both the experiment list and the active status."""
+    # Arrange
+    old_name = "old-name"
+    new_name = "new-name"
+    manager.create_experiment(old_name, DummyConfig())
+    manager.set_active_experiment(old_name)
+
+    # Act
+    res = manager.rename_active_experiment(new_name)
+
+    # Assert
+    assert res.is_success
+    assert new_name in manager.experiments
+    assert old_name not in manager.experiments
+    assert manager.active_experiment == new_name
+
+
+def test_label_management_flow(manager: ExperimentManager) -> None:
+    """Verify global label assignment and assignment validation."""
+    # Arrange
+    manager.create_experiment("label-test", DummyConfig())
+    manager.set_active_experiment("label-test")
+    manager.add_global_label("python")
+
+    # Act: Positive
+    res_ok = manager.update_active_experiment_labels({"python"})
+
+    # Assert
+    assert res_ok.is_success
+    assert manager.index is not None
+    assert "python" in manager.index.experiments["label-test"].labels
+
+    # Act: Negative, check if an invalid is assigned
+    res_fail = manager.update_active_experiment_labels({"invalid-label"})
+    
+    # Assert
+    assert res_fail.is_success is False
+    assert "Invalid" in res_fail.message
+
+
+def test_delete_active_experiment_cleanup(
+    manager: ExperimentManager, dummy_ctx: ExperimentContext
+) -> None:
+    """Ensure deleting an active experiment removes the directory and resets the active status."""
+    # Arrange
+    name = "to-be-deleted"
+    manager.create_experiment(name, DummyConfig())
+    manager.set_active_experiment(name)
+
+    # Act
+    res = manager.delete_experiment(name)
+
+    # Assert
+    assert res.is_success
+    assert name not in manager.experiments
+    assert manager.active_experiment is None  # if the active experiment is reset
+    assert not dummy_ctx.get_experiment_dir(
+        name
+    ).exists()  # if the directory is really removed

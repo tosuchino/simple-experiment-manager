@@ -22,7 +22,8 @@ class DummyConfig(BaseModel):
 def dummy_ctx(tmp_path: Path) -> ExperimentContext:
     """Provides the dummy experiment context."""
     ctx = ExperimentContext(
-        lib_name="dummy_lib", config_cls=DummyConfig, base_dir=tmp_path
+        default_config=DummyConfig(),
+        base_dir=tmp_path,
     )
     return ctx
 

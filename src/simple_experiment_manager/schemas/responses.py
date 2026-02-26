@@ -54,11 +54,11 @@ class ResponseGetExperimentConfig(BaseResponse):
 
 
 # label
-class ResponseAddGlobalLabel(BaseResponse):
+class ResponseAddLabelsToExperiment(BaseResponse):
     pass
 
 
-class ResponseRemoveGlobalLabel(BaseResponse):
+class ResponseRemoveGlobalLabels(BaseResponse):
     pass
 
 
@@ -68,9 +68,9 @@ class ResponseUpdateExperimentLabels(BaseResponse):
 
 class ResponseGetLabelUsage(BaseResponse):
     usage: Annotated[
-        dict[str, set[str]],
+        dict[str, list[str]],
         Field(
-            description="A dictionary of labels whose values are sets of experiment names."
+            description="A mapping of all global labels to lists of experiment names."
         ),
     ] = Field(default_factory=dict)
 
@@ -98,8 +98,8 @@ ExperimentManagerResponse: TypeAlias = (
     | ResponseRenameExperiment
     | ResponseGetExperimentConfig
     | ResponseGetExperimentLabelMap
-    | ResponseAddGlobalLabel
-    | ResponseRemoveGlobalLabel
+    | ResponseAddLabelsToExperiment
+    | ResponseRemoveGlobalLabels
     | ResponseUpdateExperimentLabels
     | ResponseGetLabelUsage
     | ResponseGetIndex

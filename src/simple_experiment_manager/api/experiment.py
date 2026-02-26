@@ -1,4 +1,4 @@
-from typing import Any, cast
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -21,7 +21,7 @@ def create_experiment(
             if isinstance(default_config, BaseModel):
                 actual_config = default_config.model_copy(deep=True)
             else:
-                actual_config = cast(ConfigClass, default_config.copy())
+                actual_config = ConfigClass(**default_config.to_dict())
         updated_index = _create_experiment_core(
             experiment_name=request.experiment_name,
             config=actual_config,
@@ -108,12 +108,15 @@ def copy_experiment(
     """Creates a new experiment by copying another existing experiment config."""
     io = ExperimentDataIO(context)
     try:
+        current_index = io.load_index()
         src_config = io.load_config(request.src_experiment_name)
+        src_labels = current_index.experiments[request.src_experiment_name].labels
         updated_index = _create_experiment_core(
             experiment_name=request.dst_experiment_name,
             config=src_config,
             context=context,
             io=io,
+            labels=src_labels,
         )
         return res_schemas.ResponseCopyExperiment(
             is_success=True,
@@ -226,6 +229,7 @@ def _create_experiment_core(
     config: BaseModel | ConfigClass,
     context: ExperimentContext,
     io: ExperimentDataIO,
+    labels: list[str] | None = None,
 ) -> ExperimentIndex:
     """Creates a experiment configuration and updates the experiment index after validation.
 
@@ -236,6 +240,7 @@ def _create_experiment_core(
         config: The experiment configuration instance which matches the context's `default_config`.
         context: The experiment context.
         io: The experiment data IO handler.
+        labels: A list of label names to add. If None, an empty list is used. Defaults to None.
 
     Returns:
         The updated `ExperimentIndex` instance.
@@ -259,8 +264,9 @@ def _create_experiment_core(
     io.save_config(experiment_name=experiment_name, config=config)
 
     # update index file
+    labels = labels if labels else list()
     index.experiments[experiment_name] = ExperimentMetadata(
-        config_path=config_file.relative_to(context.experiment_root)
+        labels=labels, config_path=config_file.relative_to(context.experiment_root)
     )
     index.active_experiment = experiment_name
     io.save_index(index)
@@ -273,10 +279,10 @@ def _validate_config_type(config: Any, ctx: ExperimentContext) -> None:
     expected = ctx.default_config
 
     if isinstance(expected, BaseModel):
-        if not isinstance(config, type(expected)):
+        if not isinstance(config, BaseModel):
             raise TypeError(
                 f"Expected {type(expected).__name__}, got {type(config).__name__}"
             )
-    elif type(expected).__name__ == "ConfigClass":
-        if not type(config).__name__ != "ConfigClass":
+    elif isinstance(expected, ConfigClass):
+        if not isinstance(config, ConfigClass):
             raise TypeError(f"Expected `ConfigClass`, got {type(config).__name__}")

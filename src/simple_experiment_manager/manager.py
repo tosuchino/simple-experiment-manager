@@ -134,11 +134,11 @@ class ExperimentManager:
         Returns:
             A `ResponseUpdateExperimentConfig` instance.
         """
-        if not self.active_experiment:
-            return res_schemas.ResponseUpdateExperimentConfig(
-                is_success=False, message="No active experiment set."
-            )
-        return self.update_experiment_config(name=self.active_experiment, config=config)
+        if name := self.active_experiment:
+            return self.update_experiment_config(name=name, config=config)
+        return res_schemas.ResponseUpdateExperimentConfig(
+            is_success=False, message="No active experiment set."
+        )
 
     def rename_experiment(
         self, old_name: str, new_name: str
@@ -171,12 +171,10 @@ class ExperimentManager:
             A `ResponseRenameExperiment` instance.
 
         """
-        if not self.active_experiment:
-            return res_schemas.ResponseRenameExperiment(
-                is_success=False, message="No active experiment set."
-            )
-        return self.rename_experiment(
-            old_name=self.active_experiment, new_name=new_name
+        if old_name := self.active_experiment:
+            return self.rename_experiment(old_name=old_name, new_name=new_name)
+        return res_schemas.ResponseRenameExperiment(
+            is_success=False, message="No active experiment set."
         )
 
     def get_experiment_config(
@@ -200,75 +198,103 @@ class ExperimentManager:
         Returns:
             A `ResponseGetExperimentConfig` instance.
         """
-        if not self.active_experiment:
-            return res_schemas.ResponseGetExperimentConfig(
-                is_success=False, message="No active experiment set."
-            )
-        return self.get_experiment_config(name=self.active_experiment)
+        if name := self.active_experiment:
+            return self.get_experiment_config(name=name)
+        return res_schemas.ResponseGetExperimentConfig(
+            is_success=False, message="No active experiment set."
+        )
 
-    def add_global_label(self, name: str) -> res_schemas.ResponseAddGlobalLabel:
-        """Adds a new label to the global label set.
+    def add_labels_to_experiment(
+        self, experiment_name: str, labels: list[str]
+    ) -> res_schemas.ResponseAddLabelsToExperiment:
+        """Adds labels to the experiment and ensures they are registered in the global label list.
 
         Args:
-           name: A new label name to add.
+           experiment_name: The experiment name to add labels to.
+           labels: A list of label names to add.
 
         Returns:
-            A `ResponseAddGlobalLabel` instance.
+            A `ResponseAddLabelsToExperiment` instance.
         """
-        req = req_schemas.RequestAddGlobalLabel(label_name=name)
-        res = api_label.add_global_label(request=req, context=self.ctx)
+        req = req_schemas.RequestAddLabelsToExperiment(
+            experiment_name=experiment_name, labels=labels
+        )
+        res = api_label.add_labels_to_experiment(request=req, context=self.ctx)
         self._update_state(res)
         return res
 
-    def remove_global_label(self, name: str) -> res_schemas.ResponseRemoveGlobalLabel:
-        """Removes a label from the global label set and from all the experiments.
+    def add_labels_to_active_experiment(
+        self, labels: list[str]
+    ) -> res_schemas.ResponseAddLabelsToExperiment:
+        """Adds labels to the active experiment and ensures they are registered in the global label list.
 
         Args:
-           name: The label name to remove from the global set.
+           labels: A list of label names to add.
 
         Returns:
-            A `ResponseRemoveGlobalLabel` instance.
+            A `ResponseAddLabelsToExperiment` instance.
         """
-        req = req_schemas.RequestRemoveGlobalLabel(label_name=name)
-        res = api_label.remove_global_label(request=req, context=self.ctx)
+        if experiment_name := self.active_experiment:
+            return self.add_labels_to_experiment(
+                experiment_name=experiment_name, labels=labels
+            )
+        return res_schemas.ResponseAddLabelsToExperiment(
+            is_success=False, message="No active experiment set."
+        )
+
+    def remove_global_labels(
+        self, labels: list[str]
+    ) -> res_schemas.ResponseRemoveGlobalLabels:
+        """Removes multiple labels from the global label list and from all the experiments.
+
+        Args:
+           labels: A list of label names to remove from the global label list.
+
+        Returns:
+            A `ResponseRemoveGlobalLabels` instance.
+        """
+        req = req_schemas.RequestRemoveGlobalLabels(labels=labels)
+        res = api_label.remove_global_labels(request=req, context=self.ctx)
         self._update_state(res)
         return res
 
     def update_experiment_labels(
-        self, name: str, labels: set[str]
+        self, experiment_name: str, labels: list[str]
     ) -> res_schemas.ResponseUpdateExperimentLabels:
         """Updates labels for a experiment.
 
         Args:
-           name: The name of the experiment whose labels will be updated.
-           labels: A set of labels which must be a subset of the global label set.
+           experiment_name: The name of the experiment whose labels will be updated.
+           labels: A list of label names to assign. All labels must already exist in the global label　list.
 
         Returns:
             A `ResponseUpdateExperimentLabels` instance.
         """
         req = req_schemas.RequestUpdateExperimentLabels(
-            experiment_name=name, labels=labels
+            experiment_name=experiment_name, labels=labels
         )
         res = api_label.update_experiment_labels(request=req, context=self.ctx)
         self._update_state(res)
         return res
 
     def update_active_experiment_labels(
-        self, labels: set[str]
+        self, labels: list[str]
     ) -> res_schemas.ResponseUpdateExperimentLabels:
         """Updates labels for the currently active experiment.
 
         Args:
-           labels: A set of labels which must be a subset of the global label set.
+            labels: A list of label names to assign. All labels must already exist in the global label　list.
 
         Returns:
             A `ResponseUpdateExperimentLabels` instance.
         """
-        if not self.active_experiment:
-            return res_schemas.ResponseUpdateExperimentLabels(
-                is_success=False, message="No active experiment set."
+        if experiment_name := self.active_experiment:
+            return self.update_experiment_labels(
+                experiment_name=experiment_name, labels=labels
             )
-        return self.update_experiment_labels(name=self.active_experiment, labels=labels)
+        return res_schemas.ResponseUpdateExperimentLabels(
+            is_success=False, message="No active experiment set."
+        )
 
     def get_label_usage(self) -> res_schemas.ResponseGetLabelUsage:
         """Gets the label usage, providing a mapping of the labels to the sets of experiment names that use them.
@@ -302,11 +328,11 @@ class ExperimentManager:
         Returns:
             A `ResponseGetExperimentLabelMap` instance.
         """
-        if not self.active_experiment:
-            return res_schemas.ResponseGetExperimentLabelMap(
-                is_success=False, message="No active experiment set."
-            )
-        return self.get_experiment_label_map(name=self.active_experiment)
+        if name := self.active_experiment:
+            return self.get_experiment_label_map(name=name)
+        return res_schemas.ResponseGetExperimentLabelMap(
+            is_success=False, message="No active experiment set."
+        )
 
     @property
     def experiment_root(self) -> Path:
@@ -329,16 +355,16 @@ class ExperimentManager:
     @property
     def active_experiment_dir(self) -> Path | None:
         """Provides the directory path for the active experiment."""
-        if not self.active_experiment:
-            return None
-        return self.ctx.get_experiment_dir(self.active_experiment)
+        if name := self.active_experiment:
+            return self.get_experiment_dir(name)
+        return None
 
     @property
     def active_experiment_config_file(self) -> Path | None:
         """Provides the configuration file path for the active experiment."""
-        if not self.active_experiment:
-            return None
-        return self.get_experiment_config_file(self.active_experiment)
+        if name := self.active_experiment:
+            return self.get_experiment_config_file(name)
+        return None
 
     @property
     def index(self) -> ExperimentIndex | None:
@@ -346,9 +372,9 @@ class ExperimentManager:
         return self._index
 
     @property
-    def global_labels(self) -> set[str]:
-        """Gets the set of labels defined at the global level."""
-        return self.index.global_labels if self.index else set()
+    def global_labels(self) -> list[str]:
+        """Gets the list of labels defined at the global level."""
+        return self.index.global_labels if self.index else list()
 
     @property
     def active_experiment(self) -> str | None:
@@ -363,6 +389,6 @@ class ExperimentManager:
         return None
 
     @property
-    def experiments(self) -> set[str]:
+    def experiments(self) -> list[str]:
         """Gets the set of all registered experiment names."""
-        return set(self.index.experiments.keys()) if self.index else set()
+        return list(self.index.experiments.keys()) if self.index else list()

@@ -12,25 +12,22 @@ from simple_experiment_manager.schemas.contexts import ConfigClass, ExperimentCo
 def build_template_dict_from_config_class(
     instance: BaseModel | ConfigClass,
 ) -> CommentedMap:
-    """Given a Pydantic model instance, a CommentedMap is recursively built."""
+    """Given a model instance, a CommentedMap is recursively built."""
     data = CommentedMap()
 
+    # ConfigClass case
     if isinstance(instance, ConfigClass):
         for name, value in instance.to_dict(mode="json").items():
             data[name] = value
         return data
 
+    # BaseModel case
     model_cls = type(instance)
-    current_values = instance.model_dump()
-
     for name, field in model_cls.model_fields.items():
-        value = current_values.get(name)
-        field_type = field.annotation
-
+        value = getattr(instance, name)
         # Check if a field is nested
-        if isinstance(value, dict) and field_type and issubclass(field_type, BaseModel):
-            nested_instance = getattr(instance, name)
-            data[name] = build_template_dict_from_config_class(nested_instance)
+        if isinstance(value, BaseModel):
+            data[name] = build_template_dict_from_config_class(value)
         else:
             data[name] = value
 

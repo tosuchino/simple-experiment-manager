@@ -51,19 +51,19 @@ def command_list_labels(
 
 
 @label_app.command(name="add")
-def command_add_global_label(
+def command_add_labels_to_active_experiment(
     ctx: typer.Context,
-    name: str = typer.Argument(..., help="New label name to register globally."),
+    labels: list[str] = typer.Argument(..., help="A list of labels to add."),
 ):
-    """Register a new label globally."""
+    """Adds labels to the active experiment."""
     manager: ExperimentManager = resolve_manager(ctx)
-    res = manager.add_global_label(name)
+    res = manager.add_labels_to_active_experiment(labels)
     handle_result(res.is_success, res.message)
 
 
 @label_app.command(name="assign")
 def command_assign_labels(ctx: typer.Context):
-    """Assign or unassign labels using the default editor."""
+    """No arguments. Assign or unassign labels to the active experiment using the default editor."""
     manager: ExperimentManager = resolve_manager(ctx)
 
     # gets the current label map of the active experiment
@@ -76,23 +76,23 @@ def command_assign_labels(ctx: typer.Context):
     edited_map = edit_label_map_via_editor(ctx=manager.ctx, label_map=res_map.label_map)
 
     # updates the labels
-    selected_labels = {name for name, active in edited_map.items() if active}
+    selected_labels = [name for name, active in edited_map.items() if active]
     res = manager.update_active_experiment_labels(selected_labels)
     handle_result(res.is_success, res.message)
 
 
 @label_app.command(name="remove")
-def command_remove_label(
+def command_remove_labels(
     ctx: typer.Context,
-    name: str = typer.Argument(..., help="Global label name to remove."),
+    labels: list[str] = typer.Argument(..., help="A list of label names to remove."),
 ):
-    """Remove a label from the global list and all experiments."""
+    """Remove labels from the global label list and all experiments."""
     confirm = typer.confirm(
-        f"Remove label '{name}' from the global list and all experiments?"
+        f"Remove labels '{labels}' from the global list and all experiments?"
     )
     if not confirm:
         raise typer.Abort()
 
     manager: ExperimentManager = resolve_manager(ctx)
-    res = manager.remove_global_label(name)
+    res = manager.remove_global_labels(labels)
     handle_result(res.is_success, res.message)

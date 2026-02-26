@@ -89,14 +89,20 @@ class RequestGetExperimentConfig(BaseModel):
 
 
 # labels
-class RequestAddGlobalLabel(BaseModel):
-    label_name: Annotated[str, Field(description="A label name to add globally.")]
-
-
-class RequestRemoveGlobalLabel(BaseModel):
-    label_name: Annotated[
+class RequestAddLabelsToExperiment(BaseModel):
+    experiment_name: Annotated[
         str,
-        Field(description="A label name to remove globally and from all experiments."),
+        Field(description="The name of the experiment to add labels to."),
+    ]
+    labels: Annotated[list[str], Field(description="A list of label names to add.")]
+
+
+class RequestRemoveGlobalLabels(BaseModel):
+    labels: Annotated[
+        list[str],
+        Field(
+            description="A list of label names to remove globally and from all experiments."
+        ),
     ]
 
 
@@ -105,7 +111,7 @@ class RequestUpdateExperimentLabels(BaseModel):
         str, Field(description="The name of the experiment to update.")
     ]
     labels: Annotated[
-        set[str], Field(description="The set of labels to assign to the experiment.")
+        list[str], Field(description="A list of labels to assign to the experiment.")
     ]
 
 

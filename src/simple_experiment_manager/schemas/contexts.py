@@ -12,7 +12,7 @@ class ConfigClass:
     def __init__(self, **kwargs: Any):
         fields: dict[str, Any] = {k: (type(v), v) for k, v in kwargs.items()}
         self._Model = create_model(
-            "DynamicConfig",
+            "ConfigClass",
             __config__=ConfigDict(arbitrary_types_allowed=True),
             **fields,
         )

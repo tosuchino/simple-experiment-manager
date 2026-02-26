@@ -2,6 +2,7 @@ from pathlib import Path
 
 from simple_experiment_manager.manager import ExperimentManager
 from simple_experiment_manager.schemas.contexts import ConfigClass, ExperimentContext
+from simple_experiment_manager.schemas.responses import ExperimentManagerResponse
 
 # 1. Instantiate the `ExperimentContext` class with your configuration.
 # The experiment root is created at `base_dir /experiments`.
@@ -21,14 +22,16 @@ context = ExperimentContext(
 manager = ExperimentManager(context)
 
 
+def handle_res_message(res: ExperimentManagerResponse) -> None:
+    pre_msg = "Success" if res.is_success else "Error"
+    print(f"{pre_msg}: {res.message}")
+
+
 def main() -> None:
     # Create a new experiment　with the default config
-    print("\n--- Create a experiment ---")
+    print("\n--- Create a new experiment ---")
     res_create_experiment = manager.create_experiment(name="exp_001")
-    if res_create_experiment.is_success:
-        print(res_create_experiment.message)
-    else:
-        print(res_create_experiment.message)
+    handle_res_message(res_create_experiment)
 
     # Check the currently active experiment
     print("\n--- Check the active experiment ---")
@@ -44,48 +47,50 @@ def main() -> None:
         print(
             f"Configuration for the active experiment:\n{res_get_active_experiment_config.config}"
         )
+    handle_res_message(res_get_active_experiment_config)
 
-    # Add new labels
-    print("\n--- Add labels ---")
-    label_names = ("label1", "label2")
-    for lname in label_names:
-        res_add_global_label = manager.add_global_label(name=lname)
-        if res_add_global_label.is_success:
-            print(res_add_global_label.message)
+    # Add labels to the active experiment
+    print("\n--- Add labels to the active expriment ---")
+    labels = ["label1", "label2", "label3"]
+    res_add_global_label = manager.add_labels_to_active_experiment(labels=labels)
+
+    handle_res_message(res_add_global_label)
 
     # Display the global label list
-    print("\n--- Show labels ----")
+    print("\n--- Show the global labels ----")
     global_labels = manager.global_labels
     print(f"Global labels: {global_labels}")
 
-    # Assign a label to the active experiment
-    if global_labels:
-        label_to_add = next(iter(global_labels))
-        print(
-            f"\nAssign a label '{label_to_add}' to the active experiment: {manager.active_experiment}"
-        )
-        res_update_active_experiment_labels = manager.update_active_experiment_labels(
-            labels={label_to_add}
-        )
-        if res_update_active_experiment_labels.is_success:
-            print(res_update_active_experiment_labels.message)
-
     # Check the current label assignments
-    print("\n--- Check label status for the active experiment ---")
+    print("\n--- Check the label status for the active experiment ---")
     res_get_active_experiment_label_map = manager.get_active_experiment_label_map()
     if res_get_active_experiment_label_map.is_success:
-        print(res_get_active_experiment_label_map.message)
         print(
             f"Labels for the active experiment: {res_get_active_experiment_label_map.label_map}"
         )
+    handle_res_message(res_get_active_experiment_label_map)
 
     # Copy a experiment
-    print("\n--- Copy a experiment ---")
+    print("\n--- Copy an experiment ---")
     res_copy_experiment = manager.copy_experiment(
-        src_name="experiment1", dst_name="experiment2"
+        src_name="exp_001", dst_name="exp_002"
     )
-    if res_copy_experiment.is_success:
-        print(res_copy_experiment.message)
+    handle_res_message(res_copy_experiment)
+
+    # Assign labels to the active experiment
+    print("\n--- Assign labels to the active experiment ---")
+    if global_labels:
+        labels_to_add = [
+            "label1",
+            "label2",
+        ]  # "label3" is removed from the active experiment
+        print(
+            f"\nAssign a label '{labels_to_add}' to the active experiment: {manager.active_experiment}"
+        )
+        res_update_active_experiment_labels = manager.update_active_experiment_labels(
+            labels=labels_to_add
+        )
+        handle_res_message(res_update_active_experiment_labels)
 
     # List all managed experiments
     print("\n--- List all experiments ---")
@@ -95,8 +100,9 @@ def main() -> None:
     print("\n--- Check the label usage statistics ---")
     res_get_label_usage = manager.get_label_usage()
     if res_get_label_usage.is_success:
-        print(res_get_label_usage.message)
         print(f"Label usage: {res_get_label_usage.usage}")
+
+    handle_res_message(res_get_label_usage)
 
     print(
         f"\n[Cleanup Notice]\nAfter testing, manually delete the sample project directory: {manager.experiment_root.parent}"

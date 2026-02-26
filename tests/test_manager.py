@@ -59,22 +59,23 @@ def test_label_management_flow(manager: ExperimentManager) -> None:
     # Arrange
     manager.create_experiment("label-test", DummyConfig())
     manager.set_active_experiment("label-test")
-    manager.add_global_label("python")
+    manager.add_labels_to_active_experiment(["label1", "label2"])
 
     # Act: Positive
-    res_ok = manager.update_active_experiment_labels({"python"})
+    res_ok = manager.update_active_experiment_labels(["label1"])
 
     # Assert
     assert res_ok.is_success
     assert manager.index is not None
-    assert "python" in manager.index.experiments["label-test"].labels
+    assert "label1" in manager.index.experiments["label-test"].labels
+    assert "label2" not in manager.index.experiments["label-test"].labels
 
     # Act: Negative, check if an invalid is assigned
-    res_fail = manager.update_active_experiment_labels({"invalid-label"})
-    
+    res_fail = manager.update_active_experiment_labels(["invalid-label"])
+
     # Assert
     assert res_fail.is_success is False
-    assert "Invalid" in res_fail.message
+    assert "invalid-label" in res_fail.message
 
 
 def test_delete_active_experiment_cleanup(

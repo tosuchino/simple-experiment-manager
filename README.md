@@ -77,8 +77,7 @@ print(f"Experiment Dir: {manager.active_experiment_dir}") # absolute path
 # Retrieve the configuration instance
 res = manager.get_active_experiment_config()
 if res.is_success and res.config:
-    config = res.config  # Fully type-hinted MyConfig instance
-    # run_simulation(config)
+    config = res.config
 ```
 
 For a comprehensive demonstration of API, checkout [examples/sample_script.py](src/simple_experiment_manager/examples/sample_script.py):

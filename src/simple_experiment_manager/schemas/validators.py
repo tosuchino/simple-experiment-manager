@@ -16,3 +16,8 @@ def validate_safe_name(name: str) -> str:
             f"Prohibited: {invalid_chars_display}"
         )
     return name
+
+
+def ensure_unique_list(items: list[str]) -> list[str]:
+    """Removes duplicate elements from the list while preserving the original order."""
+    return list(dict.fromkeys(items))

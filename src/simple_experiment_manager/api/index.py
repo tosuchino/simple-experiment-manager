@@ -15,7 +15,7 @@ def get_index(
 
         return res_schemas.ResponseGetIndex(
             is_success=True,
-            message="Successfully obtained the experiment index.",
+            message="Successfully retrieved the experiment index.",
             current_index=index,
         )
     except Exception as e:
